@@ -1,5 +1,6 @@
 import json
 import matplotlib.pyplot as plt
+from shapely.geometry import Polygon
 
 
 def build_map(tweets, file_name = "Data/states.json"):
@@ -12,6 +13,16 @@ def extract_state(file_name):
         return json.load(states)
 
 
+def flatten_coordinates(polygon):
+    flat_coords = []
+    for points in polygon:
+        if isinstance(points, list) and len(points) == 2 and all(isinstance(coord, (int, float)) for coord in points):
+            flat_coords.append(points)  
+        elif isinstance(points, list):  
+            flat_coords.extend(flatten_coordinates(points))
+    return flat_coords
+
+
 def build_states(state_data, tweets):
     fig, ax = plt.subplots(figsize=(8, 6))
     state_x = []
@@ -19,11 +30,10 @@ def build_states(state_data, tweets):
 
     for state, polygons in state_data.items():
         for polygon in polygons:
-            print(polygon)
-            print(state)
-            
-            x = [points[0] for points in polygon]
-            y = [points[1] for points in polygon]
+            clean_polygon = flatten_coordinates(polygon)
+
+            x = [points[0] for points in clean_polygon]
+            y = [points[1] for points in clean_polygon]
 
             state_x.extend(x)
             state_y.extend(y)
@@ -31,9 +41,13 @@ def build_states(state_data, tweets):
             ax.plot(x, y, label=state if len(ax.lines) == 0 else "", color="black")
 
         if state_x and state_y:
-            central_point_x = sum(state_x) / len(state_x)
-            central_point_y = sum(state_y) / len(state_y)
-            ax.plot(central_point_x, central_point_y, color="red", marker="o", markersize=5)
+            polygon_shape = Polygon(zip(state_x, state_y))
+            centroid = polygon_shape.centroid
+
+            ax.plot(centroid.x, centroid.y, color="red", marker="o", markersize=5)
+        
+        state_x = []
+        state_y = []
 
     ax.legend()
     ax.set_xlabel("Долгота")
