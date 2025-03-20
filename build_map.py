@@ -1,6 +1,6 @@
 import json
 import matplotlib.pyplot as plt
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 
 
 def build_map(tweets, file_name = "Data/states.json"):
@@ -23,12 +23,42 @@ def flatten_coordinates(polygon):
     return flat_coords
 
 
+def find_polygon_state(tweets, state_data):
+
+    state_sentiments = {}
+
+    for tweet in tweets:
+        tweet_point = Point(float(tweet.latitude), float(tweet.longitude))
+        tweet_sentiment = float(tweet.sentiment)
+
+        found_state = None
+
+        for state, polygons in state_data.items():
+            for polygon in polygons:
+                polygon_shape = Polygon(flatten_coordinates(polygon))
+                print(polygon_shape.is_valid)
+
+                if polygon_shape.contains(tweet_point):
+                    found_state = state
+                    break
+
+            if found_state:
+                break
+
+        if found_state:
+            state_sentiments[found_state] = state_sentiments.get(found_state, 0) + tweet_sentiment
+
+    return state_sentiments
+        
 def build_states(state_data, tweets):
+    print(find_polygon_state(tweets, state_data))
+
     fig, ax = plt.subplots(figsize=(8, 6))
-    state_x = []
-    state_y = []
 
     for state, polygons in state_data.items():
+        state_x = []
+        state_y = []
+
         for polygon in polygons:
             clean_polygon = flatten_coordinates(polygon)
 
@@ -44,10 +74,7 @@ def build_states(state_data, tweets):
             polygon_shape = Polygon(zip(state_x, state_y))
             centroid = polygon_shape.centroid
 
-            ax.plot(centroid.x, centroid.y, color="red", marker="o", markersize=5)
-        
-        state_x = []
-        state_y = []
+            ax.plot(centroid.x, centroid.y, color="red", marker="o", markersize=5)       
 
     ax.legend()
     ax.set_xlabel("Долгота")
@@ -61,7 +88,7 @@ def build_states(state_data, tweets):
 def tweets_points(tweets, ax):
     
     for tweet in tweets:
-        x = float(tweet.longitude)
-        y = float(tweet.latitude)
+        x = float(tweet.latitude)
+        y = float(tweet.longitude)
         ax.plot(x, y, color="black", marker="o", markersize=5)
 
