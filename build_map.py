@@ -26,6 +26,7 @@ def flatten_coordinates(polygon):
 def find_polygon_state(tweets, state_data):
 
     state_sentiments = {}
+    state_sentiments_count = {}
 
     for tweet in tweets:
         tweet_point = Point(float(tweet.latitude), float(tweet.longitude))
@@ -36,7 +37,6 @@ def find_polygon_state(tweets, state_data):
         for state, polygons in state_data.items():
             for polygon in polygons:
                 polygon_shape = Polygon(flatten_coordinates(polygon))
-                print(polygon_shape.is_valid)
 
                 if polygon_shape.contains(tweet_point):
                     found_state = state
@@ -47,17 +47,31 @@ def find_polygon_state(tweets, state_data):
 
         if found_state:
             state_sentiments[found_state] = state_sentiments.get(found_state, 0) + tweet_sentiment
+            state_sentiments_count[found_state] = state_sentiments_count.get(found_state, 0) + 1
+    state_avg_sentiments = {
+        state: state_sentiments[state] / state_sentiments_count[state]
+        for state in state_sentiments
+    }
+    return state_avg_sentiments
 
-    return state_sentiments
-        
+
 def build_states(state_data, tweets):
-    print(find_polygon_state(tweets, state_data))
+    states_sentiments = find_polygon_state(tweets, state_data)
 
     fig, ax = plt.subplots(figsize=(8, 6))
 
     for state, polygons in state_data.items():
         state_x = []
         state_y = []
+        state_sentiments = states_sentiments.get(state, 0)
+        print(state_sentiments)
+
+        if state_sentiments > 0:
+            color = (states_sentiments, state_sentiments, 0)
+        else:
+            color = (0, 0, abs(state_sentiments))
+
+        print(color)
 
         for polygon in polygons:
             clean_polygon = flatten_coordinates(polygon)
@@ -69,12 +83,13 @@ def build_states(state_data, tweets):
             state_y.extend(y)
 
             ax.plot(x, y, label=state if len(ax.lines) == 0 else "", color="black")
+            ax.fill(x, y, color=color)
 
         if state_x and state_y:
             polygon_shape = Polygon(zip(state_x, state_y))
             centroid = polygon_shape.centroid
 
-            ax.plot(centroid.x, centroid.y, color="red", marker="o", markersize=5)       
+            ax.plot(centroid.x, centroid.y, color="red", marker="o", markersize=5)
 
     ax.legend()
     ax.set_xlabel("Долгота")
