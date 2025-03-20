@@ -27,6 +27,7 @@ def flatten_coordinates(polygon):
 def find_polygon_state(tweets, state_data):
     state_sentiments = {}
     state_sentiments_count = {}
+    state_sentiments_count = {}
 
     for tweet in tweets:
         tweet_point = Point(float(tweet.latitude), float(tweet.longitude))
@@ -57,6 +58,7 @@ def find_polygon_state(tweets, state_data):
 
 
 def build_states(state_data, tweets):
+    states_sentiments = find_polygon_state(tweets, state_data)
     states_sentiments = find_polygon_state(tweets, state_data)
 
     fig, ax = plt.subplots(figsize=(8, 6))
